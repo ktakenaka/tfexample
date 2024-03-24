@@ -129,12 +129,3 @@ resource "aws_security_group" "example" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
-variable "server_port" {
-  type    = number
-  default = 8080
-}
-
-output "alb_dns_name" {
-  value = aws_lb.example.dns_name
-}
