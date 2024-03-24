@@ -8,7 +8,7 @@ terraform {
     key            = "stage/services/webserver-cluster/terraform.tfstate"
     region         = "ap-southeast-1"
     dynamodb_table = "terraform-up-and-running-locks"
-    encrypt = true
+    encrypt        = true
   }
 }
 
@@ -104,7 +104,9 @@ resource "aws_launch_configuration" "example" {
 
   user_data = <<-EOF
               #!/bin/bash
-              echo "Hello, World" > index.html
+              echo "Hello, World" > index.xhtml
+              echo "${data.terraform_remote_state.db.outputs.db_address}" >> index.xhtml
+              echo "${data.terraform_remote_state.db.outputs.db_port}" >> index.xhtml
               nohup busybox httpd -f -p ${var.server_port} &
               EOF
 
@@ -137,5 +139,15 @@ resource "aws_security_group" "example" {
     to_port     = var.server_port
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+data "terraform_remote_state" "db" {
+  backend = "s3"
+
+  config = {
+    bucket = "terraform-up-and-running-bb1994"
+    key    = "stage/data-storage/mysql/terraform.tfstate"
+    region = "ap-southeast-1"
   }
 }
