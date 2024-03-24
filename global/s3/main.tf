@@ -2,6 +2,9 @@ provider "aws" {
   region = "ap-southeast-1"
 }
 
+// in the initial apply, you need to comment out the backend block, and run terraform init & apply first to create the s3 bucket and dynamodb table.
+// then you can uncomment the backend block and run terraform init again to configure the backend.
+// this is because the backend block will try to create the s3 bucket and dynamodb table, but it will fail because the s3 bucket and dynamodb table are not created yet.
 terraform {
   backend "s3" {
     bucket         = "terraform-up-and-running-bb1994"
