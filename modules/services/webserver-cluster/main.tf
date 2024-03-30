@@ -90,14 +90,15 @@ resource "aws_security_group_rule" "allow_all_outbound" {
 }
 
 resource "aws_launch_configuration" "example" {
-  image_id        = "ami-06c4be2792f419b7b"
+  image_id        = var.ami
   instance_type   = var.instance_type
-  security_groups = [aws_security_group.instance.id]
+  security_groups = [aws_security_group.cluster_instance.id]
 
   user_data = templatefile("${path.module}/user-data.sh", {
     server_port = var.server_port
     db_address  = data.terraform_remote_state.db.outputs.address
     db_port     = data.terraform_remote_state.db.outputs.port
+    server_text = var.server_text
   })
 
   lifecycle {
@@ -106,6 +107,8 @@ resource "aws_launch_configuration" "example" {
 }
 
 resource "aws_autoscaling_group" "example" {
+  name = "${var.cluster_name}-${aws_launch_configuration.example.name}"
+
   launch_configuration = aws_launch_configuration.example.id
   vpc_zone_identifier  = data.aws_subnets.default.ids
 
@@ -115,25 +118,66 @@ resource "aws_autoscaling_group" "example" {
   min_size = var.min_size
   max_size = var.max_size
 
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+    }
+  }
+
   tag {
     key                 = "Name"
-    value               = "terraform-asg-example"
+    value               = var.cluster_name
     propagate_at_launch = true
+  }
+
+  dynamic "tag" {
+    for_each = {
+      for key, value in var.custom_tags :
+      key => upper(value)
+      if key != "Name"
+    }
+
+    content {
+      key                 = tag.key
+      value               = tag.value
+      propagate_at_launch = true
+    }
   }
 }
 
-resource "aws_security_group" "instance" {
+resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
+  count                  = var.enable_autoscaling ? 1 : 0
+  scheduled_action_name  = "${var.cluster_name}-scale-out-during-business-hours"
+  min_size               = 2
+  max_size               = 10
+  desired_capacity       = 5
+  recurrence             = "0 9 * * *"
+  autoscaling_group_name = aws_autoscaling_group.example.name
+}
+
+resource "aws_autoscaling_schedule" "scale_in_after_business_hours" {
+  count                  = var.enable_autoscaling ? 1 : 0
+  scheduled_action_name  = "${var.cluster_name}-scale-in-after-business-hours"
+  min_size               = 2
+  max_size               = 10
+  desired_capacity       = 2
+  recurrence             = "0 17 * * *"
+  autoscaling_group_name = aws_autoscaling_group.example.name
+}
+
+resource "aws_security_group" "cluster_instance" {
   name = "${var.cluster_name}-instance"
 }
 
 resource "aws_security_group_rule" "allow_server_http_inbound" {
   type              = "ingress"
-  security_group_id = aws_security_group.instance.id
+  security_group_id = aws_security_group.cluster_instance.id
 
-  from_port         = var.server_port
-  to_port           = var.server_port
-  protocol          = local.tcp_protocol
-  cidr_blocks       = local.all_ips
+  from_port   = var.server_port
+  to_port     = var.server_port
+  protocol    = local.tcp_protocol
+  cidr_blocks = local.all_ips
 }
 
 data "terraform_remote_state" "db" {
@@ -144,4 +188,9 @@ data "terraform_remote_state" "db" {
     key    = var.db_remote_state_key
     region = "ap-southeast-1"
   }
+}
+
+moved {
+  from = aws_security_group.instance
+  to   = aws_security_group.cluster_instance
 }

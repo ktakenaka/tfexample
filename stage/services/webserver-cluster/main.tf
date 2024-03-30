@@ -1,5 +1,12 @@
 provider "aws" {
   region = "ap-southeast-1"
+
+  default_tags {
+    tags = {
+      Owner     = "team-foo"
+      ManagedBy = "Terraform"
+    }
+  }
 }
 
 terraform {
@@ -15,6 +22,7 @@ terraform {
 module "webserver_cluster" {
   source = "../../../modules/services/webserver-cluster"
 
+  server_text            = "New server text"
   cluster_name           = "wervserver-stg"
   db_remote_state_bucket = "terraform-up-and-running-bb1994"
   db_remote_state_key    = "stage/data-stores/mysql/terraform.tfstate"
@@ -22,4 +30,11 @@ module "webserver_cluster" {
   instance_type = "t2.micro"
   min_size      = 2
   max_size      = 2
+
+  enable_autoscaling = false
+
+  custom_tags = {
+    Owner     = "team-foo"
+    ManagedBy = "Terraform"
+  }
 }
