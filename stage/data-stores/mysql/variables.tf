@@ -1,6 +1,7 @@
 variable "db_username" {
-  type    = string
-  default = "dbuser"
+  type      = string
+  sensitive = true
+  default   = "dbuser"
 }
 
 variable "db_password" {
