@@ -2,7 +2,7 @@ name: Terraform Apply
 on:
   push:
     branches:
-      - main
+      - tf-apply
 permissions:
   id-token: write
 jobs:
