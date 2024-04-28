@@ -20,10 +20,10 @@ terraform {
 }
 
 module "webserver_cluster" {
-  source = "../../../modules/services/webserver-cluster"
+  source = "../../../modules/services/hello-world-app"
+  environment            = "stage"
 
   server_text            = "New server text"
-  cluster_name           = "wervserver-stg"
   db_remote_state_bucket = "terraform-up-and-running-bb1994"
   db_remote_state_key    = "stage/data-stores/mysql/terraform.tfstate"
 

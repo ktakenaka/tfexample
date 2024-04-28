@@ -2,8 +2,8 @@ output "alb_dns_name" {
   value = aws_lb.example.dns_name
 }
 
-output "asg_name" {
-  value = aws_autoscaling_group.example.name
+output "alb_http_listener_arn" {
+  value = aws_lb_listener.http.arn
 }
 
 output "alb_security_group_id" {
